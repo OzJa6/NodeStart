@@ -1,17 +1,25 @@
 const express = require('express')
 const expressHandlebars = require('express-handlebars')
 const fortune = require('./lib/fortune')
+const bodyParser = require('body-parser')
 
 const app = express()
 
 app.engine('handlebars', expressHandlebars.engine({
     defaultLyout: 'main',
+    helpers: {
+        section : function(name, options) {
+            if(!this._section) this._section = {}
+            this._section[name] = options.fn(this)
+            return null
+        },
+    },
 }))
-
 app.set('view engine', 'handlebars')
 
 const port = process.env.PORT || 3000
 
+app.use(bodyParser.urlencoded({extended: true}))
 app.use(express.static(__dirname + '/public'))
 
 app.get('/', (req, res) => {
