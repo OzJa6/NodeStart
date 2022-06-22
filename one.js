@@ -2,15 +2,17 @@ const express = require('express')
 const expressHandlebars = require('express-handlebars')
 const fortune = require('./lib/fortune')
 const bodyParser = require('body-parser')
+const handlers = require('./lib/handlers')
+const weatherMiddleware = require('./lib/middleware/weather')
 
 const app = express()
 
 app.engine('handlebars', expressHandlebars.engine({
     defaultLyout: 'main',
     helpers: {
-        section : function(name, options) {
-            if(!this._section) this._section = {}
-            this._section[name] = options.fn(this)
+        section: function(name, options) {
+            if (!this._sections) this._sections = {}
+            this._sections[name] = options.fn(this)
             return null
         },
     },
@@ -19,35 +21,25 @@ app.set('view engine', 'handlebars')
 
 const port = process.env.PORT || 3000
 
-app.use(bodyParser.urlencoded({extended: true}))
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 app.use(express.static(__dirname + '/public'))
 
-app.get('/', (req, res) => {
-    res.render('home')
-})
+app.get('/', weatherMiddleware, handlers.home)
 
-app.get('/about', (req, res) => {
-    
-    res.render('about', {fortune: fortune.getFortune()})
-})
+app.get('/about', handlers.about)
 
-app.get('/headers', (req,res) => {
-    res.type('text/plain')
-    const headers = Object.entries(req.headers)
-    .map(([key, value]) => `${key}: ${value}`)
-    res.send(headers.join('\n'))
-})
+app.get('/headers', handlers.headers)
 
-app.use((req, res) => {
-    ews.status(404)
-    res.render('404')
-})
+app.get('/newsletter', handlers.newsletter)
+app.post('/api/newsletter-signup', handlers.api.newsletterSignup)
 
-app.use((err, req, res, next) => {
-    console.error(err.message)
-    res.status(500)
-    res.render('500')
-})
+
+
+
+app.use(handlers.NotFound)
+
+app.use(handlers.ServerError)
 
 app.listen(port, () => console.log('express started' + `on ${port}` + 'press ctrl+c'))
 
